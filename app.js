@@ -1,9 +1,3 @@
-/* =========================================
-   READING THE BOOK OF LIFE — App Logic
-   All canvas animations + scroll handling
-   ========================================= */
-
-// ─── Utility Helpers ─────────────────────
 function lerp(a, b, t) { return a + (b - a) * t; }
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
@@ -25,7 +19,6 @@ const DNA_COLORS = {
 const DNA_LETTERS = ['A', 'C', 'G', 'T'];
 const DNA_COLORS_ARR = [DNA_COLORS.A, DNA_COLORS.C, DNA_COLORS.G, DNA_COLORS.T];
 
-// ─── DPR-aware canvas sizing ─────────────
 function setupCanvas(canvas) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -36,7 +29,6 @@ function setupCanvas(canvas) {
   return { ctx, w: rect.width, h: rect.height, dpr };
 }
 
-// ─── Scroll Progress for an element ──────
 function getScrollProgress(el) {
   const rect = el.getBoundingClientRect();
   const windowH = window.innerHeight;
@@ -50,9 +42,6 @@ function isInView(el) {
   return rect.top < window.innerHeight && rect.bottom > 0;
 }
 
-// =========================================
-//  1. HERO — Floating cell particles
-// =========================================
 function initHeroCanvas() {
   const canvas = document.getElementById('cellCanvas');
   if (!canvas) return;
@@ -97,9 +86,6 @@ function initHeroCanvas() {
   draw();
 }
 
-// =========================================
-//  DNA HELIX SHARED RENDERER
-// =========================================
 let sharedDNATime = 0;
 
 function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
@@ -111,7 +97,6 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
   const alpha = options.alpha !== undefined ? options.alpha : 1.0;
   if (alpha <= 0.001) return;
 
-  // Draw base pair rungs and spheres
   for (let i = 0; i < numBases; i++) {
     const frac = i / numBases;
     const y = startY + frac * totalHeight;
@@ -123,7 +108,6 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
     const colorIdx = i % 4;
     const complementIdx = (colorIdx + 2) % 4;
 
-    // Base pair connection rung
     ctx.beginPath();
     ctx.moveTo(x1, y);
     ctx.lineTo(x2, y);
@@ -213,7 +197,7 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
       const labelX = cx + Math.cos(angle) * labelDist;
       const labelY = y;
 
-      // 1. Subtle glowing dotted connection line from dot to badge
+      // subtle glowing dotted connection line
       ctx.beginPath();
       ctx.moveTo(dotX, dotY);
       ctx.lineTo(labelX, labelY);
@@ -224,7 +208,7 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 2. Highlighting ring on the base dot itself
+      // highlighting the dot thing
       ctx.beginPath();
       ctx.arc(dotX, dotY, (6.5 + baseScale * 2.5), 0, Math.PI * 2);
       ctx.strokeStyle = col;
@@ -234,7 +218,7 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
       ctx.shadowBlur = 10;
       ctx.stroke();
 
-      // 3. Circular badge for the letter
+      // badge for the letter
       const badgeR = 14 * baseScale;
       ctx.beginPath();
       ctx.arc(labelX, labelY, badgeR, 0, Math.PI * 2);
@@ -246,7 +230,6 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
       ctx.lineWidth = 1.8;
       ctx.stroke();
 
-      // 4. Letter text inside the badge
       ctx.fillStyle = col;
       ctx.shadowBlur = 4;
       ctx.globalAlpha = effAlpha;
@@ -256,16 +239,12 @@ function drawDNAHelix(ctx, cx, cy, totalHeight, radius, time, options = {}) {
   }
 }
 
-// =========================================
-//  2. ZOOM INTO CELL & NUCLEUS CALLOUT (DNA LOUPE)
-// =========================================
 function initCellZoom() {
   const section = document.getElementById('section-2');
   const wrapper = document.getElementById('cellZoomWrapper');
   const canvas = document.getElementById('cellCalloutCanvas');
   if (!section || !wrapper || !canvas) return;
 
-  // Enhance to inline SVG for vector sharpness
   fetch('Animal_cells.svg')
     .then(r => r.text())
     .then(svgText => {
@@ -291,10 +270,8 @@ function initCellZoom() {
     const t = getScrollProgress(section);
     ctx.clearRect(0, 0, w, h);
 
-    // Natural cell breathing pulse
     const breathe = Math.sin(sharedDNATime * 1.5) * 0.005;
 
-    // Locate the nucleus center in canvas coordinates
     const svgEl = wrapper.querySelector('svg') || wrapper.querySelector('img');
     const cRect = canvas.getBoundingClientRect();
     let nucX = w * 0.48189;
@@ -310,7 +287,6 @@ function initCellZoom() {
       }
     }
 
-    // Default callout loupe position (placed near nucleus, upper right)
     const startX = Math.min(w - 140, nucX + Math.max(180, Math.min(w * 0.22, 280)));
     const startY = Math.max(140, Math.min(h - 140, nucY - 35));
     const initialR = clamp(Math.min(w, h) * 0.11, 85, 115);
@@ -331,13 +307,11 @@ function initCellZoom() {
     let labelAlpha = 0;
 
     if (t < 0.10) {
-      // Stage 1: Cell at full size, text box scrolls up, callout hidden
       cellScale = 1.0 + breathe;
       cellOpacity = 1.0;
       calloutActive = false;
       if (dnaPanel) dnaPanel.classList.remove('visible');
     } else if (t >= 0.10 && t < 0.24) {
-      // Stage 2: Callout circle and leader lines appear pointing to nucleus
       const u = (t - 0.10) / 0.14;
       const easeU = easeOutCubic(u);
       circleX = startX;
@@ -351,7 +325,6 @@ function initCellZoom() {
       calloutActive = true;
       if (dnaPanel) dnaPanel.classList.remove('visible');
     } else if (t >= 0.24 && t < 0.44) {
-      // Stage 3: DNA model gets larger, circle glides to center, cell gets smaller & fades out
       const p = (t - 0.24) / 0.20;
       const ep = easeInOutCubic(clamp(p, 0, 1));
 
@@ -360,20 +333,16 @@ function initCellZoom() {
       circleR = lerp(initialR, targetR, ep);
       helixScale = lerp(0.38, 1.0, ep);
 
-      // Cell shrinks and disappears
       cellScale = lerp(1.0, 0.25, ep) + breathe * (1 - p);
       cellOpacity = clamp(1 - p * 1.5, 0, 1);
-
-      // Leader lines fade out as circle moves
       leaderAlpha = clamp(1 - p * 2.2, 0, 1);
 
-      // Circle stroke fades out as it expands
+      // circle stroke fades out
       circleStrokeAlpha = clamp(1 - p * 1.6, 0, 1);
 
       calloutActive = true;
       if (dnaPanel) dnaPanel.classList.remove('visible');
     } else {
-      // Stage 4: Cell and circle lines gone, centered DNA model stays in place
       cellScale = 0.25;
       cellOpacity = 0;
       circleX = w * 0.5;
@@ -384,7 +353,6 @@ function initCellZoom() {
       circleStrokeAlpha = 0;
       calloutActive = true;
 
-      // The Book of Life box shows up
       if (dnaPanel) {
         if (t >= 0.44 && t <= 0.96) {
           dnaPanel.classList.add('visible');
@@ -393,20 +361,16 @@ function initCellZoom() {
         }
       }
 
-      // Labels on the dots appear as you scroll further with the box
       if (t >= 0.50) {
         showLabels = true;
         labelAlpha = clamp((t - 0.50) / 0.16, 0, 1);
       }
     }
 
-    // Apply cell SVG transform & opacity
     wrapper.style.transform = `scale(${cellScale.toFixed(4)})`;
     wrapper.style.opacity = cellOpacity.toFixed(3);
 
-    // Render Callout Graphics if active
     if (calloutActive) {
-      // 1. Draw Leader Lines and projection beam pointing to the nucleus
       if (leaderAlpha > 0.01) {
         const angleToNuc = Math.atan2(nucY - circleY, nucX - circleX);
         const p1X = circleX + Math.cos(angleToNuc + 0.42) * circleR;
@@ -414,7 +378,6 @@ function initCellZoom() {
         const p2X = circleX + Math.cos(angleToNuc - 0.42) * circleR;
         const p2Y = circleY + Math.sin(angleToNuc - 0.42) * circleR;
 
-        // Target points on nucleus perimeter
         const perpX = Math.cos(angleToNuc + Math.PI / 2);
         const perpY = Math.sin(angleToNuc + Math.PI / 2);
         const t1X = nucX + perpX * (nucRadius * 0.35);
@@ -422,7 +385,6 @@ function initCellZoom() {
         const t2X = nucX - perpX * (nucRadius * 0.35);
         const t2Y = nucY - perpY * (nucRadius * 0.35);
 
-        // Subtle glowing projection beam
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(p1X, p1Y);
@@ -436,7 +398,6 @@ function initCellZoom() {
         ctx.fillStyle = beamGrad;
         ctx.fill();
 
-        // Two sharp leader lines
         ctx.beginPath();
         ctx.moveTo(p1X, p1Y);
         ctx.lineTo(t1X, t1Y);
@@ -448,7 +409,7 @@ function initCellZoom() {
         ctx.shadowBlur = 8;
         ctx.stroke();
 
-        // Target reticle on nucleus
+        // target reticle on nucleus
         ctx.beginPath();
         ctx.arc(nucX, nucY, Math.max(10, nucRadius * 0.38), 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(129, 140, 248, ${0.75 * leaderAlpha})`;
@@ -457,7 +418,6 @@ function initCellZoom() {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Glowing center dot on nucleus
         ctx.beginPath();
         ctx.arc(nucX, nucY, 3, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(244, 244, 255, ${0.95 * leaderAlpha})`;
@@ -467,12 +427,10 @@ function initCellZoom() {
         ctx.restore();
       }
 
-      // 2. DNA Model rendering
       const helixH = lerp(circleR * 2.2, h * 0.8, helixScale);
       const helixR = lerp(circleR * 0.34, Math.min(w, h) * 0.08, helixScale);
 
       if (circleStrokeAlpha > 0.01) {
-        // Clipped inside the circular loupe during zoom/glide
         ctx.save();
         ctx.beginPath();
         ctx.arc(circleX, circleY, circleR, 0, Math.PI * 2);
@@ -489,7 +447,6 @@ function initCellZoom() {
         });
         ctx.restore();
 
-        // 3. Callout Circle Border
         ctx.save();
         ctx.beginPath();
         ctx.arc(circleX, circleY, circleR, 0, Math.PI * 2);
@@ -499,7 +456,6 @@ function initCellZoom() {
         ctx.shadowBlur = 14 * circleStrokeAlpha;
         ctx.stroke();
 
-        // Outer decorative technical ring
         ctx.beginPath();
         ctx.arc(circleX, circleY, circleR + 5, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(56, 189, 248, ${0.45 * circleStrokeAlpha})`;
@@ -507,7 +463,6 @@ function initCellZoom() {
         ctx.stroke();
         ctx.restore();
       } else {
-        // Circle is gone: Centered full-scale DNA double helix stays in place
         drawDNAHelix(ctx, w * 0.5, h * 0.5, helixH, helixR, sharedDNATime, {
           baseScale: 1.0,
           alpha: 1.0,
@@ -523,15 +478,11 @@ function initCellZoom() {
   update();
 }
 
-// =========================================
-//  5. SHOTGUN — DNA breaking into fragments
-// =========================================
 function initShotgunCanvas() {
   const canvas = document.getElementById('shotgunCanvas');
   if (!canvas) return;
   const section = document.getElementById('section-5');
 
-  // Generate fragments
   const fragments = [];
   const fragCount = 80;
   for (let i = 0; i < fragCount; i++) {
@@ -555,7 +506,6 @@ function initShotgunCanvas() {
     const t = getScrollProgress(section);
     ctx.clearRect(0, 0, w, h);
 
-    // Pure black background matching page theme
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
@@ -570,7 +520,6 @@ function initShotgunCanvas() {
     let postBreak = 0;
 
     if (t < 0.18) {
-      // Phase 1: Question is centered, DNA chain of dots appears right underneath
       if (questionBlock) {
         questionBlock.style.opacity = '1';
         questionBlock.style.transform = 'translateY(0)';
@@ -581,7 +530,6 @@ function initShotgunCanvas() {
       strandY = h * 0.68;
       postBreak = 0;
     } else if (t >= 0.18 && t < 0.40) {
-      // Phase 2: Title fades away, DNA chain moves to center, Cut It Into Pieces scrolls up
       const u = (t - 0.18) / 0.22;
       const easeU = easeInOutCubic(clamp(u, 0, 1));
 
@@ -599,7 +547,6 @@ function initShotgunCanvas() {
       }
       postBreak = 0;
     } else {
-      // Phase 3: Title gone, Cut It Into Pieces is up, DNA breaks into pieces
       if (questionBlock) questionBlock.style.opacity = '0';
       if (shotgunPanel) shotgunPanel.classList.add('visible');
 
@@ -608,7 +555,6 @@ function initShotgunCanvas() {
       chainAlpha = clamp(1 - postBreak * 3.5, 0, 1);
     }
 
-    // Helper: Draw intact DNA chain of dots
     function drawIntactChain(yPos, alpha) {
       if (alpha <= 0.01) return;
       ctx.save();
@@ -616,7 +562,6 @@ function initShotgunCanvas() {
       const strandLen = Math.min(w * 0.78, 920);
       const startX = cx - strandLen / 2;
 
-      // Backbone line
       ctx.beginPath();
       ctx.moveTo(startX, yPos);
       ctx.lineTo(startX + strandLen, yPos);
@@ -624,7 +569,7 @@ function initShotgunCanvas() {
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Chain of dots (bases)
+      // draw intact DNA strand
       const numBases = 64;
       for (let i = 0; i < numBases; i++) {
         const bx = startX + (i / (numBases - 1)) * strandLen;
@@ -641,14 +586,12 @@ function initShotgunCanvas() {
       ctx.restore();
     }
 
-    // Draw intact DNA chain if visible
     if (chainAlpha > 0) {
       drawIntactChain(strandY, chainAlpha);
     }
 
-    // Breaking / Shotgun animation
+    // shotgun animation
     if (postBreak > 0) {
-      // Distribute fragments
       fragments.forEach((frag, i) => {
         const row = Math.floor(i / 10);
         const col = i % 10;
@@ -667,7 +610,6 @@ function initShotgunCanvas() {
         ctx.rotate(frag.angle * eased);
         ctx.globalAlpha = 0.4 + eased * 0.6;
 
-        // Draw fragment as a small sequence
         const charW = 8;
         const totalW = frag.seq.length * charW;
         ctx.font = 'bold 9px Inter';
@@ -678,7 +620,6 @@ function initShotgunCanvas() {
           ctx.fillText(letter, lx, 3);
         });
 
-        // Underline
         ctx.beginPath();
         ctx.moveTo(-totalW / 2, 7);
         ctx.lineTo(totalW / 2, 7);
@@ -689,7 +630,6 @@ function initShotgunCanvas() {
         ctx.restore();
       });
 
-      // Flash effect at center when breaking
       if (postBreak < 0.25) {
         const flashAlpha = (1 - postBreak / 0.25) * 0.45;
         const flashGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 220);
@@ -705,15 +645,12 @@ function initShotgunCanvas() {
   draw();
 }
 
-// =========================================
-//  6. ILLUMINA — Firefly field (THE HERO)
-// =========================================
+// firefly field
 function initIlluminaCanvas() {
   const canvas = document.getElementById('illuminaCanvas');
   if (!canvas) return;
   const section = document.getElementById('section-6');
 
-  // Create firefly grid (flow-cell clusters)
   const gridCols = 38;
   const gridRows = 24;
   const fireflies = [];
@@ -742,7 +679,6 @@ function initIlluminaCanvas() {
     time += 0.02;
     ctx.clearRect(0, 0, w, h);
 
-    // Deep black flow cell background
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
@@ -758,7 +694,6 @@ function initIlluminaCanvas() {
       const fx = marginX + ff.col * spacingX + spacingX / 2 + ff.jitterX;
       const fy = marginY + ff.row * spacingY + spacingY / 2 + ff.jitterY;
 
-      // Periodically switch colors (representing sequential base incorporation)
       ff.changeTimer -= 0.016;
       if (ff.changeTimer <= 0) {
         ff.letterIdx = (ff.letterIdx + Math.floor(Math.random() * 3) + 1) % 4;
@@ -775,7 +710,6 @@ function initIlluminaCanvas() {
       const r = ff.baseRadius * (0.7 + b * 0.6);
       const glowR = r * 5.5;
 
-      // Wide soft fluorescent halo
       const glow = ctx.createRadialGradient(fx, fy, 0, fx, fy, glowR);
       glow.addColorStop(0, hexToRgba(color, b * 0.55));
       glow.addColorStop(0.35, hexToRgba(color, b * 0.2));
@@ -784,20 +718,17 @@ function initIlluminaCanvas() {
       ctx.fillStyle = glow;
       ctx.fillRect(fx - glowR, fy - glowR, glowR * 2, glowR * 2);
 
-      // Saturated glowing core
       ctx.beginPath();
       ctx.arc(fx, fy, r, 0, Math.PI * 2);
       ctx.fillStyle = hexToRgba(color, Math.min(1, 0.8 + b * 0.2));
       ctx.fill();
 
-      // White-hot center of fluorescent emission
       ctx.beginPath();
       ctx.arc(fx, fy, r * 0.45, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, 0.6 + b * 0.4)})`;
       ctx.fill();
     });
 
-    // Subtle edge vignette
     const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.85);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(1, 'rgba(2, 3, 10, 0.5)');
@@ -809,15 +740,12 @@ function initIlluminaCanvas() {
   draw();
 }
 
-// =========================================
-//  7. ASSEMBLY — Fragment matching animation
-// =========================================
 function initAssemblyCanvas() {
   const canvas = document.getElementById('assemblyCanvas');
   if (!canvas) return;
   const section = document.getElementById('section-7');
 
-  // Create some fragment pairs that match
+  // matching fragment pairs
   const pairs = [
     { left: 'A T G C C A'.split(' '), right: 'C A G T T A'.split(' '), overlap: 2 },
     { left: 'G T A C'.split(' '), right: 'A C T G G'.split(' '), overlap: 2 },
@@ -849,10 +777,8 @@ function initAssemblyCanvas() {
       const rightLen = pair.right.length;
       const totalLen = leftLen + rightLen - pair.overlap;
 
-      // Start: fragments apart, End: fragments joined
       const separation = lerp(w * 0.2, 0, eased);
 
-      // Left fragment
       const leftStartX = cx - (totalLen * charW) / 2 - separation;
       ctx.font = 'bold 14px Inter';
       ctx.textAlign = 'center';
@@ -861,7 +787,6 @@ function initAssemblyCanvas() {
         const lx = leftStartX + j * charW + charW / 2;
         const isOverlap = j >= leftLen - pair.overlap;
 
-        // Highlight overlap
         if (isOverlap && pairT > 0.5) {
           const hlAlpha = (pairT - 0.5) * 2;
           ctx.fillStyle = `rgba(255, 255, 255, ${hlAlpha * 0.08})`;
@@ -874,7 +799,6 @@ function initAssemblyCanvas() {
         ctx.globalAlpha = 1;
       });
 
-      // Right fragment
       const rightStartX = cx - (totalLen * charW) / 2 + (leftLen - pair.overlap) * charW + separation;
       pair.right.forEach((letter, j) => {
         const lx = rightStartX + j * charW + charW / 2;
@@ -892,7 +816,6 @@ function initAssemblyCanvas() {
         ctx.globalAlpha = 1;
       });
 
-      // Underlines
       ctx.beginPath();
       ctx.moveTo(leftStartX, py + 14);
       ctx.lineTo(leftStartX + leftLen * charW, py + 14);
@@ -905,7 +828,6 @@ function initAssemblyCanvas() {
       ctx.lineTo(rightStartX + rightLen * charW, py + 14);
       ctx.stroke();
 
-      // Match indicator
       if (pairT > 0.7) {
         const matchAlpha = (pairT - 0.7) / 0.3;
         ctx.save();
@@ -922,10 +844,7 @@ function initAssemblyCanvas() {
   }
   draw();
 }
-
-// =========================================
-//  8. REPEATS — "and and and" problem
-// =========================================
+// repeats section
 function initRepeatCanvas() {
   const canvas = document.getElementById('repeatCanvas');
   if (!canvas) return;
@@ -936,22 +855,20 @@ function initRepeatCanvas() {
     let { ctx, w, h } = setupCanvas(canvas);
     const t = getScrollProgress(section);
     ctx.clearRect(0, 0, w, h);
-
-    // Pure black background matching other dark sections
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
     const isWide = w > 900;
     const cy = h / 2;
 
-    // Position page in the left viewing area so it never overlaps the right text panel
+    // position page in the left viewing area so it never overlaps the right text panel
     const leftAvailable = isWide ? (w * 0.95 - 460) : w;
     const pageW = isWide ? Math.min(leftAvailable * 0.9, 640) : Math.min(w * 0.88, 520);
     const pageH = Math.min(h * 0.65, 500);
     const pageX = isWide ? Math.max(30, (leftAvailable - pageW) / 2) : (w - pageW) / 2;
     const pageY = cy - pageH / 2;
 
-    // Dark page container with subtle border and shadow
+    // dark page container with subtle border and shadow
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
     ctx.shadowBlur = 30;
@@ -963,7 +880,7 @@ function initRepeatCanvas() {
     ctx.strokeRect(pageX, pageY, pageW, pageH);
     ctx.restore();
 
-    // Fill page with repeating text
+    // fill page with repeating text
     ctx.save();
     ctx.beginPath();
     ctx.rect(pageX + 10, pageY + 10, pageW - 20, pageH - 20);
@@ -991,7 +908,7 @@ function initRepeatCanvas() {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // Show a fragment "window" that slides across — too short to be unique
+    // show a fragment "window" that slides across
     if (t > 0.15) {
       const fragT = clamp((t - 0.15) * 2.2, 0, 1);
       const fragW = Math.max(pageW * 0.2, 110);
@@ -999,7 +916,6 @@ function initRepeatCanvas() {
       const fragX = pageX + 20 + fragT * (pageW - fragW - 40);
       const fragY = pageY + 25 + 2 * lineH + 4;
 
-      // Highlight box
       ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
       ctx.fillRect(fragX, fragY, fragW, fragH);
 
@@ -1009,7 +925,6 @@ function initRepeatCanvas() {
       ctx.strokeRect(fragX, fragY, fragW, fragH);
       ctx.setLineDash([]);
 
-      // Label (centered over fragment, safely clamped within page boundaries)
       ctx.font = '12px Inter, -apple-system, sans-serif';
       ctx.fillStyle = '#FCA5A5';
       ctx.textAlign = 'center';
@@ -1021,17 +936,13 @@ function initRepeatCanvas() {
   draw();
 }
 
-// =========================================
-// =========================================
-//  10. PACBIO — Zero-mode waveguide (SMRT Sequencing)
-// =========================================
 function initPacBioCanvas() {
   const canvas = document.getElementById('pacbioCanvas');
   if (!canvas) return;
   const section = document.getElementById('section-10');
   let time = 0;
 
-  // Fixed circular DNA sequence (64 bases)
+  // fixed circular DNA sequence, gemini made this
   const circularDNA = [
     'A', 'T', 'G', 'C', 'C', 'A', 'G', 'T', 'T', 'A', 'A', 'C', 'G', 'T', 'A', 'C',
     'A', 'C', 'T', 'G', 'G', 'T', 'T', 'A', 'G', 'C', 'G', 'C', 'A', 'A', 'T', 'C',
@@ -1039,7 +950,6 @@ function initPacBioCanvas() {
     'A', 'A', 'G', 'T', 'G', 'C', 'A', 'T', 'C', 'G', 'T', 'A', 'A', 'T', 'C', 'C'
   ];
 
-  // Floating free nucleotides in solution (Brownian motion)
   const freeNucleotides = [];
   for (let i = 0; i < 20; i++) {
     freeNucleotides.push({
@@ -1052,7 +962,7 @@ function initPacBioCanvas() {
     });
   }
 
-  // Spline interpolation for smooth closed circular loop
+  // see i used a fun word, spline
   function getClosedSplinePoint(pts, u) {
     const M = pts.length;
     let wrapped = ((u % M) + M) % M;
@@ -1072,7 +982,6 @@ function initPacBioCanvas() {
     };
   }
 
-  // Pre-sample points along spline with approximate arc-length
   function sampleSplinePoints(pts, numSamples) {
     const samples = [];
     for (let s = 0; s < numSamples; s++) {
@@ -1088,16 +997,15 @@ function initPacBioCanvas() {
     const t = getScrollProgress(section);
     ctx.clearRect(0, 0, w, h);
 
-    // Pure black background matching all other sections
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
     const isWide = w > 900;
-    // Position chamber in the left viewing area so right text panel never overlaps
+
     const cx = isWide ? (w * 0.35) : (w / 2);
     const cy = h * 0.5;
 
-    // Zero-mode waveguide dimensions
+    // zmw dimensions
     const wellInnerW = Math.min(w * 0.36, 320);
     const wellH = Math.min(h * 0.48, 380);
     const wellBottom = cy + wellH * 0.44;
@@ -1105,12 +1013,6 @@ function initPacBioCanvas() {
     const wallThick = Math.min(w * 0.18, 160);
     const wH = wellInnerW * 0.5;
 
-    // Control points for the elongated circular DNA loop (SMRTbell)
-    // The strand loops down from the top solution, down the left side,
-    // passes through polymerase at bottom center (cx, wellBottom - 26),
-    // rises up the right side, loops out into upper solution, and back down!
-    // Control points for the elongated circular DNA loop (SMRTbell)
-    // P0 is at the bottom center inside the polymerase active site
     const loopPts = [
       { x: cx, y: wellBottom - 24 },                     // P0: Active site inside polymerase at bottom
       { x: cx + wH * 0.45, y: wellBottom - 58 },         // P1: Exiting polymerase curving up-right
@@ -1125,35 +1027,28 @@ function initPacBioCanvas() {
       { x: cx - wH * 0.4, y: wellBottom - 58 }           // P10: Approaching polymerase from left
     ];
 
-    // Pre-sample 240 points for smooth backbone and arc parameterization
     const splineSamples = sampleSplinePoints(loopPts, 240);
     const numSamples = splineSamples.length;
 
-    // Motion parameters
+    // motion params
     const strandSpeed = 0.045; // loop rotations per second
     const strandProgress = (time * strandSpeed) % 1.0;
     const totalBases = circularDNA.length;
     const step = 1.0 / totalBases;
 
-    // The base physically located at the bottom active site (u = 0.0):
-    // For base i, its position u = ((i / totalBases) + strandProgress) % 1.0.
-    // For u ≈ 0.0, i/totalBases ≈ 1.0 - strandProgress.
     const activeBaseExact = ((1.0 - (strandProgress % 1.0)) * totalBases);
     let activeBaseIdx = Math.floor(activeBaseExact) % totalBases;
     if (activeBaseIdx < 0) activeBaseIdx += totalBases;
 
-    // Normalized dwell of this base as it passes through the bottom active site (0 -> 1)
+    // dwell of this base as it passes through the bottom active site
     const baseDwell = activeBaseExact - Math.floor(activeBaseExact);
     const activeBaseLetter = circularDNA[activeBaseIdx];
 
-    // Laser zap dynamics: fires strictly when the base is traversing the bottom active site
     const zapIntensity = Math.sin(baseDwell * Math.PI);
 
     const currentPassNum = Math.floor(time * strandSpeed) + 1;
 
-    // ----------------------------------------------------
-    // 1. DRAW ZERO-MODE WAVEGUIDE WALLS & BACKGROUND
-    // ----------------------------------------------------
+    // zmw well!
     ctx.save();
 
     // Top solution ambient gradient
@@ -1163,7 +1058,7 @@ function initPacBioCanvas() {
     ctx.fillStyle = solGrad;
     ctx.fillRect(cx - wellInnerW * 1.5, wellTop - 140, wellInnerW * 3, 140);
 
-    // Interior of the nanoscale well (dark chamber)
+    // Interior of the nanoscale well
     ctx.fillStyle = '#060813';
     ctx.fillRect(cx - wH, wellTop, wellInnerW, wellH);
 
@@ -1172,20 +1067,19 @@ function initPacBioCanvas() {
     leftWallGrad.addColorStop(0, '#1c1f2e');
     leftWallGrad.addColorStop(0.7, '#2b2f42');
     leftWallGrad.addColorStop(0.95, '#3b4058');
-    leftWallGrad.addColorStop(1, '#4a506d'); // specular edge highlight
+    leftWallGrad.addColorStop(1, '#4a506d');
     ctx.fillStyle = leftWallGrad;
     ctx.fillRect(cx - wH - wallThick, wellTop, wallThick, wellH);
 
     // Right metallic cladding wall
     const rightWallGrad = ctx.createLinearGradient(cx + wH, wellTop, cx + wH + wallThick, wellTop);
-    rightWallGrad.addColorStop(0, '#4a506d'); // specular edge highlight
+    rightWallGrad.addColorStop(0, '#4a506d');
     rightWallGrad.addColorStop(0.05, '#3b4058');
     rightWallGrad.addColorStop(0.3, '#2b2f42');
     rightWallGrad.addColorStop(1, '#1c1f2e');
     ctx.fillStyle = rightWallGrad;
     ctx.fillRect(cx + wH, wellTop, wallThick, wellH);
 
-    // Top horizontal beveled lip of metallic cladding
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1195,7 +1089,6 @@ function initPacBioCanvas() {
     ctx.lineTo(cx + wH + wallThick, wellTop);
     ctx.stroke();
 
-    // Inner corner vertical highlights
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -1205,7 +1098,6 @@ function initPacBioCanvas() {
     ctx.lineTo(cx + wH, wellBottom);
     ctx.stroke();
 
-    // Glass substrate floor (below wellBottom)
     const glassH = 75;
     const glassGrad = ctx.createLinearGradient(0, wellBottom, 0, wellBottom + glassH);
     glassGrad.addColorStop(0, 'rgba(186, 230, 253, 0.22)');
@@ -1215,7 +1107,6 @@ function initPacBioCanvas() {
     ctx.fillStyle = glassGrad;
     ctx.fillRect(cx - wH - wallThick, wellBottom, wellInnerW + wallThick * 2, glassH);
 
-    // Glass interface bright surface line
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1225,19 +1116,15 @@ function initPacBioCanvas() {
 
     ctx.restore();
 
-    // ----------------------------------------------------
-    // 2. LASER ZAP BEAMS (from beneath the glass at the bottom)
-    // ----------------------------------------------------
     ctx.save();
     if (zapIntensity > 0.02) {
       const activeColor = DNA_COLORS[activeBaseLetter];
 
-      // Laser focus beam underneath glass
       ctx.save();
       ctx.shadowColor = activeColor;
       ctx.shadowBlur = 24 * zapIntensity;
 
-      // Central vertical zap ray hitting the bottom active site
+      // vertical zap hitting the bottom active site
       ctx.strokeStyle = `rgba(255, 255, 255, ${0.95 * zapIntensity})`;
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1245,7 +1132,7 @@ function initPacBioCanvas() {
       ctx.lineTo(cx, wellBottom);
       ctx.stroke();
 
-      // Angled laser converging rays
+      // laser converging rays
       ctx.strokeStyle = hexToRgba(activeColor, 0.75 * zapIntensity);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -1255,7 +1142,6 @@ function initPacBioCanvas() {
       ctx.lineTo(cx, wellBottom);
       ctx.stroke();
 
-      // High-energy focal spot at glass surface
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(cx, wellBottom, 4.5 * zapIntensity, 0, Math.PI * 2);
@@ -1265,13 +1151,8 @@ function initPacBioCanvas() {
     }
     ctx.restore();
 
-    // ----------------------------------------------------
-    // 3. EVANESCENT LIGHT FIELD GRADIENT (at bottom of well)
-    // ----------------------------------------------------
-    // "the zaps should create a gradient of brief light at the bottom of the well"
     ctx.save();
 
-    // Baseline ambient evanescent glow (always faint at bottom 20nm)
     const ambH = Math.min(wellH * 0.14, 45);
     const ambGrad = ctx.createLinearGradient(cx, wellBottom, cx, wellBottom - ambH);
     ambGrad.addColorStop(0, 'rgba(147, 197, 253, 0.16)');
@@ -1280,7 +1161,7 @@ function initPacBioCanvas() {
     ctx.fillStyle = ambGrad;
     ctx.fillRect(cx - wH + 1, wellBottom - ambH, wellInnerW - 2, ambH);
 
-    // Active Laser Zap evanescent gradient pulse!
+    // evanescent light
     if (zapIntensity > 0.02) {
       const activeColor = DNA_COLORS[activeBaseLetter];
       const zapH = Math.min(wellH * 0.32, 95); // exponentially decaying field restricted to bottom
@@ -1298,31 +1179,24 @@ function initPacBioCanvas() {
       ctx.fillStyle = zapGrad;
       ctx.fillRect(cx - wH + 1, wellBottom - zapH, wellInnerW - 2, zapH);
 
-      // Brief horizontal flash along well floor
       ctx.fillStyle = hexToRgba(activeColor, 0.3 * zapIntensity);
       ctx.fillRect(cx - wH + 1, wellBottom - 6, wellInnerW - 2, 6);
     }
     ctx.restore();
-
-    // ----------------------------------------------------
-    // 4. FREE FLOATING FLUORESCENT NUCLEOTIDES (Brownian motion)
-    // ----------------------------------------------------
+    //free floating dNTPs
     ctx.save();
     freeNucleotides.forEach((nt) => {
-      // Natural gentle Brownian drift
+      // some brownian motion
       const nx = cx + nt.xRel * (wellInnerW * 0.5) + Math.cos(time * nt.speed + nt.phase) * 8;
       const ny = wellTop + nt.yRel * wellH + Math.sin(time * nt.speed * 1.2 + nt.phase) * 8;
 
-      // Only draw if within reasonable bounds
       if (ny < wellBottom - 18 && ny > wellTop - 80 && nx > cx - wellInnerW * 0.7 && nx < cx + wellInnerW * 0.7) {
-        // Tag dot (fluorescent dye)
         ctx.fillStyle = DNA_COLORS[nt.base];
         ctx.globalAlpha = 0.55;
         ctx.beginPath();
         ctx.arc(nx, ny, 2.8, 0, Math.PI * 2);
         ctx.fill();
 
-        // Tiny polyphosphate tail / linker
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
         ctx.lineWidth = 1;
         const tailX = nx + Math.cos(nt.tailAngle) * 5;
@@ -1336,33 +1210,29 @@ function initPacBioCanvas() {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // ----------------------------------------------------
-    // 5. DNA POLYMERASE ENZYME (anchored at bottom center)
-    // ----------------------------------------------------
+    // lame attempt to make DNA polymerase
     ctx.save();
     const polyX = cx;
     const polyY = wellBottom - 18;
 
-    // Anchor bolt on glass
     ctx.fillStyle = '#06b6d4';
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(polyX - 9, wellBottom - 5, 18, 5, 2);
     else ctx.rect(polyX - 9, wellBottom - 5, 18, 5);
     ctx.fill();
 
-    // Multi-lobed molecular structure of DNA Polymerase
     const lobes = [
       { x: polyX - 16, y: polyY + 3, r: 13, shade: '#94a3b8' },
       { x: polyX + 16, y: polyY + 3, r: 13, shade: '#94a3b8' },
-      { x: polyX - 18, y: polyY - 12, r: 11, shade: '#cbd5e1' }, // Thumb domain
-      { x: polyX + 18, y: polyY - 10, r: 12, shade: '#cbd5e1' }, // Fingers domain
-      { x: polyX, y: polyY - 4, r: 14, shade: '#e2e8f0' },        // Palm / catalytic cleft
+      { x: polyX - 18, y: polyY - 12, r: 11, shade: '#cbd5e1' },
+      { x: polyX + 18, y: polyY - 10, r: 12, shade: '#cbd5e1' },
+      { x: polyX, y: polyY - 4, r: 14, shade: '#e2e8f0' },
     ];
 
     lobes.forEach((lb) => {
       const grad = ctx.createRadialGradient(lb.x - 3, lb.y - 3, 2, lb.x, lb.y, lb.r);
       if (zapIntensity > 0.05) {
-        // Reflect laser light during zap!
+        // reflect the laser light only during zap
         grad.addColorStop(0, '#ffffff');
         grad.addColorStop(0.5, hexToRgba(DNA_COLORS[activeBaseLetter], 0.65));
         grad.addColorStop(1, '#475569');
@@ -1379,14 +1249,9 @@ function initPacBioCanvas() {
 
     ctx.restore();
 
-    // ----------------------------------------------------
-    // 6. CONTINUOUS CIRCULAR DNA STRAND (SMRTbell)
-    // ----------------------------------------------------
-    // "The DNA strand should be longer, and not colored.
-    // The laser should color each base momentarily as it keeps rotating into and out of the well."
+    // smrtbell!
     ctx.save();
 
-    // Double-rail backbone along the closed spline
     ctx.beginPath();
     for (let s = 0; s < numSamples; s++) {
       const pt = splineSamples[s];
@@ -1398,9 +1263,7 @@ function initPacBioCanvas() {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Draw each base along the circular strand
     for (let i = 0; i < totalBases; i++) {
-      // Position along the loop curve
       let u = ((i / totalBases) + strandProgress) % 1.0;
       if (u < 0) u += 1.0;
       const sampleIdx = Math.floor(u * numSamples) % numSamples;
@@ -1408,17 +1271,16 @@ function initPacBioCanvas() {
 
       const letter = circularDNA[i];
 
-      // A base is active ONLY when it is physically at the bottom active site (P0 at u ≈ 0.0)
+      // bottom is u=0.0
       let distFromActive = u;
       if (distFromActive > 0.5) distFromActive -= 1.0; // wrapped distance in [-0.5, 0.5]
       const isAtBottomActiveSite = Math.abs(distFromActive) <= (step * 0.5);
       const isActive = isAtBottomActiveSite && zapIntensity > 0.05;
 
       if (isActive) {
-        // ACTIVE BASE: Colored momentarily by laser zap strictly at the bottom of the well!
         const baseColor = DNA_COLORS[letter];
 
-        // Pulsating fluorescent aura strictly at the bottom
+        // fluorescent aura strictly at the bottom
         const aura = ctx.createRadialGradient(bpt.x, bpt.y, 1, bpt.x, bpt.y, 22 * zapIntensity);
         aura.addColorStop(0, '#ffffff');
         aura.addColorStop(0.35, baseColor);
@@ -1429,13 +1291,12 @@ function initPacBioCanvas() {
         ctx.arc(bpt.x, bpt.y, 22 * zapIntensity, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glowing core bead
+        // glowing core bead
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(bpt.x, bpt.y, 5.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cleaved fluorophore tag drifting upwards from active site
         const tagY = bpt.y - 8 - baseDwell * 20;
         ctx.fillStyle = baseColor;
         ctx.globalAlpha = (1 - baseDwell) * zapIntensity;
@@ -1444,7 +1305,6 @@ function initPacBioCanvas() {
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Floating detected base badge directly above polymerase at bottom
         ctx.save();
         ctx.font = 'bold 15px Inter, -apple-system, sans-serif';
         ctx.textAlign = 'center';
@@ -1455,7 +1315,6 @@ function initPacBioCanvas() {
         ctx.restore();
 
       } else {
-        // UNCOLORED NEUTRAL BASE (everywhere else along the loop!)
         ctx.fillStyle = 'rgba(203, 213, 225, 0.85)';
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
         ctx.lineWidth = 1;
@@ -1464,7 +1323,7 @@ function initPacBioCanvas() {
         ctx.fill();
         ctx.stroke();
 
-        // Subtle specular highlight
+
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.beginPath();
         ctx.arc(bpt.x - 1.2, bpt.y - 1.2, 1.2, 0, Math.PI * 2);
@@ -1474,20 +1333,14 @@ function initPacBioCanvas() {
 
     ctx.restore();
 
-    // ----------------------------------------------------
-    // 7. LABELS, PASS COUNTER & REAL-TIME SEQUENCE TICKER
-    // ----------------------------------------------------
     ctx.save();
-
-    // Dynamic Pass Counter & Live Readout Tape
-    // Positioned below the well on the left
     const hudY = wellBottom + 52;
     ctx.textAlign = 'left';
     ctx.font = '13px Inter, -apple-system, sans-serif';
     ctx.fillStyle = '#4ADE80';
     ctx.fillText(`Read pass #${currentPassNum}`, cx - wH, hudY + 20);
 
-    // Real-time tape of recent 8 read letters
+    //tape of recent 8 read letters
     const tapeX = cx - wH;
     const tapeY = hudY + 36;
     for (let k = 0; k < 8; k++) {
@@ -1524,9 +1377,6 @@ function initPacBioCanvas() {
   draw();
 }
 
-// =========================================
-//  11. NANOPORE — DNA threading through pore
-// =========================================
 function initNanoporeCanvas() {
   const canvas = document.getElementById('nanoporeCanvas');
   if (!canvas) return;
@@ -1534,16 +1384,14 @@ function initNanoporeCanvas() {
   let time = 0;
 
   const nanoporeImg = new Image();
-  nanoporeImg.src = 'nanopore.svg';
+  nanoporeImg.src = 'nanopore.svg'; //heads up gemini designed this for me
 
-  // Long DNA strand
   const strandLength = 80;
   const strand = [];
   for (let i = 0; i < strandLength; i++) {
     strand.push(DNA_LETTERS[Math.floor(Math.random() * 4)]);
   }
 
-  // Signal history
   const signalHistory = [];
   const maxSignal = 200;
 
@@ -1554,21 +1402,18 @@ function initNanoporeCanvas() {
     const t = getScrollProgress(section);
     ctx.clearRect(0, 0, w, h);
 
-    // Dark background
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
 
     const cx = w * 0.4;
     const cy = h * 0.45;
 
-    // The membrane
     const memY = cy;
     const memThick = 20;
 
     ctx.fillStyle = '#1a1a35';
     ctx.fillRect(0, memY - memThick / 2, w * 0.8, memThick);
 
-    // Gradient edges
     const memGrad = ctx.createLinearGradient(0, memY - memThick, 0, memY + memThick);
     memGrad.addColorStop(0, 'rgba(30, 30, 60, 0.3)');
     memGrad.addColorStop(0.5, 'rgba(40, 40, 80, 0.8)');
@@ -1576,7 +1421,6 @@ function initNanoporeCanvas() {
     ctx.fillStyle = memGrad;
     ctx.fillRect(0, memY - memThick, w * 0.8, memThick * 2);
 
-    // Nanopore protein
     const poreScale = 0.42;
     const poreW = 270 * poreScale;
     const poreH = 375 * poreScale;
@@ -1586,7 +1430,6 @@ function initNanoporeCanvas() {
       ctx.drawImage(nanoporeImg, poreX, poreY, poreW, poreH);
     }
 
-    // DNA strand threading through
     const threadSpeed = t * strandLength;
     const baseSpacing = 12;
     const activation = clamp(t * 2, 0, 1);
@@ -1594,7 +1437,6 @@ function initNanoporeCanvas() {
     ctx.save();
     ctx.globalAlpha = activation;
 
-    // Current base in the pore
     const currentBaseIdx = Math.floor(threadSpeed) % strandLength;
 
     for (let i = 0; i < strandLength; i++) {
@@ -1602,22 +1444,17 @@ function initNanoporeCanvas() {
       let bx = cx;
       let by = memY + offset * baseSpacing;
 
-      // Bases above the pore move straight down
-      // Bases below the pore continue down
-      // The one IN the pore gets a glow
+      // the base in the pore gets a glow
 
-      // Skip if too far away
       if (by < memY - h * 0.45 || by > memY + h * 0.45) continue;
 
-      // Wiggle for bases not in pore
+      // bases wiggle if not in pore
       if (Math.abs(offset) > 1) {
         bx += Math.sin(by * 0.05 + time * 2) * 3;
       }
 
       const r = 4;
       const letter = strand[i];
-
-      // Flash when passing through pore
       const distFromPore = Math.abs(offset);
       const inPore = distFromPore < 0.8;
 
@@ -1636,7 +1473,6 @@ function initNanoporeCanvas() {
         ctx.fillStyle = pGrad;
         ctx.fillRect(bx - 30, by - 30, 60, 60);
 
-        // Letter label
         ctx.font = 'bold 14px Inter';
         ctx.fillStyle = DNA_COLORS[letter];
         ctx.textAlign = 'center';
@@ -1646,7 +1482,6 @@ function initNanoporeCanvas() {
       ctx.globalAlpha = activation;
     }
 
-    // Backbone line
     ctx.beginPath();
     ctx.globalAlpha = activation * 0.2;
     for (let i = 0; i < strandLength; i++) {
@@ -1664,7 +1499,6 @@ function initNanoporeCanvas() {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // Electrical signal readout (right side)
     const signalX = w * 0.55;
     const signalY = h * 0.15;
     const signalW = w * 0.35;
@@ -1675,20 +1509,18 @@ function initNanoporeCanvas() {
       ctx.save();
       ctx.globalAlpha = sigAlpha;
 
-      // Signal box background
+      // signal box background
       ctx.fillStyle = 'rgba(15, 15, 30, 0.6)';
       ctx.fillRect(signalX - 10, signalY - 10, signalW + 20, signalH + 40);
       ctx.strokeStyle = 'rgba(100, 100, 180, 0.15)';
       ctx.lineWidth = 1;
       ctx.strokeRect(signalX - 10, signalY - 10, signalW + 20, signalH + 40);
 
-      // Label
       ctx.font = '11px Inter';
       ctx.fillStyle = '#8888bb';
       ctx.textAlign = 'left';
       ctx.fillText('Power flow through the hole', signalX, signalY - 18);
 
-      // Add current signal point
       const currentLetter = strand[currentBaseIdx];
       const baseVoltages = { A: 0.7, C: 0.4, G: 0.85, T: 0.2 };
       const voltage = baseVoltages[currentLetter] + (Math.random() - 0.5) * 0.08;
@@ -1696,7 +1528,6 @@ function initNanoporeCanvas() {
       if (signalHistory.length >= maxSignal) signalHistory.shift();
       signalHistory.push({ v: voltage, letter: currentLetter });
 
-      // Draw signal trace
       ctx.beginPath();
       for (let i = 0; i < signalHistory.length; i++) {
         const sx = signalX + (i / maxSignal) * signalW;
@@ -1708,7 +1539,6 @@ function initNanoporeCanvas() {
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Color the current point
       if (signalHistory.length > 0) {
         const last = signalHistory[signalHistory.length - 1];
         const lx = signalX + ((signalHistory.length - 1) / maxSignal) * signalW;
@@ -1718,7 +1548,6 @@ function initNanoporeCanvas() {
         ctx.fillStyle = DNA_COLORS[last.letter];
         ctx.fill();
 
-        // Letter label for current
         ctx.font = 'bold 12px Inter';
         ctx.fillStyle = DNA_COLORS[last.letter];
         ctx.textAlign = 'left';
@@ -1729,8 +1558,8 @@ function initNanoporeCanvas() {
       ctx.font = '9px Inter';
       ctx.fillStyle = '#555580';
       ctx.textAlign = 'right';
-      ctx.fillText('High', signalX - 5, signalY + 10);
-      ctx.fillText('Low', signalX - 5, signalY + signalH);
+      ctx.fillText('High power', signalX - 5, signalY + 10);
+      ctx.fillText('Low power', signalX - 5, signalY + signalH);
 
       ctx.restore();
     }
@@ -1740,11 +1569,7 @@ function initNanoporeCanvas() {
   draw();
 }
 
-// =========================================
-//  SCROLL MANAGEMENT & INITIALIZATION
-// =========================================
 function initScrollObserver() {
-  // Animate-in elements
   const animateEls = document.querySelectorAll('.animate-in');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -1759,7 +1584,6 @@ function initScrollObserver() {
 
   animateEls.forEach(el => observer.observe(el));
 
-  // Text panels
   const textPanels = document.querySelectorAll(
     '.text-panel:not(#shotgunTextPanel):not(#dnaTextPanel)'
   );
@@ -1777,7 +1601,7 @@ function initScrollObserver() {
   textPanels.forEach(el => panelObserver.observe(el));
 }
 
-// ─── Boot ────────────────────────────────
+// boom bada bing let's go
 function init() {
   initHeroCanvas();
   initCellZoom();
@@ -1790,12 +1614,10 @@ function init() {
   initScrollObserver();
 }
 
-// Handle resize
 let resizeTimeout;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
-    // Canvases re-setup on each draw call via setupCanvas()
   }, 200);
 });
 
