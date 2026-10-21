@@ -1014,10 +1014,8 @@ function initRepeatCanvas() {
       ctx.fillStyle = '#FCA5A5';
       ctx.textAlign = 'center';
       const labelX = clamp(fragX + fragW / 2, pageX + 115, pageX + pageW - 115);
-      ctx.fillText('This piece looks the same everywhere!', labelX, fragY - 10);
-
+      ctx.fillText('This piece looks the same, in all places!', labelX, fragY - 10);
     }
-
     requestAnimationFrame(draw);
   }
   draw();
