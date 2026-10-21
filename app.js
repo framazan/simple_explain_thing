@@ -1535,6 +1535,9 @@ function initNanoporeCanvas() {
   const section = document.getElementById('section-11');
   let time = 0;
 
+  const nanoporeImg = new Image();
+  nanoporeImg.src = 'nanopore.svg';
+
   // Long DNA strand
   const strandLength = 80;
   const strand = [];
@@ -1575,25 +1578,15 @@ function initNanoporeCanvas() {
     ctx.fillStyle = memGrad;
     ctx.fillRect(0, memY - memThick, w * 0.8, memThick * 2);
 
-    // Pore (hole in membrane)
-    const poreW = 18;
-    const poreH = memThick + 10;
-    ctx.fillStyle = '#08081a';
-    ctx.beginPath();
-    // Pore shape: narrow funnel
-    ctx.moveTo(cx - poreW, memY - memThick / 2 - 5);
-    ctx.lineTo(cx - poreW * 0.4, memY);
-    ctx.lineTo(cx - poreW, memY + memThick / 2 + 5);
-    ctx.lineTo(cx + poreW, memY + memThick / 2 + 5);
-    ctx.lineTo(cx + poreW * 0.4, memY);
-    ctx.lineTo(cx + poreW, memY - memThick / 2 - 5);
-    ctx.closePath();
-    ctx.fill();
-
-    // Pore protein edges
-    ctx.strokeStyle = '#4a4a8a';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // Nanopore protein
+    const poreScale = 0.42;
+    const poreW = 270 * poreScale;
+    const poreH = 375 * poreScale;
+    const poreX = cx - poreW / 2;
+    const poreY = memY - 215 * poreScale;
+    if (nanoporeImg.complete && nanoporeImg.naturalWidth > 0) {
+      ctx.drawImage(nanoporeImg, poreX, poreY, poreW, poreH);
+    }
 
     // DNA strand threading through
     const threadSpeed = t * strandLength;
