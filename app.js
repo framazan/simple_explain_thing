@@ -1762,7 +1762,9 @@ function initScrollObserver() {
   animateEls.forEach(el => observer.observe(el));
 
   // Text panels
-  const textPanels = document.querySelectorAll('.text-panel');
+  const textPanels = document.querySelectorAll(
+    '.text-panel:not(#shotgunTextPanel):not(#dnaTextPanel)'
+  );
   const panelObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
